@@ -45,8 +45,12 @@ public class CheeseAnalyzer {
 
                 String organic = cheeseData[organicIndex];
                 String moisturePercent = cheeseData[moisturePercentIndex];
-                if (organic.equals("1") && !moisturePercent.isEmpty() && Double.parseDouble(moisturePercent) > 41.0) {
-                    organicMoistureCount++;
+                try {
+                    if (organic.equals("1") && !moisturePercent.isEmpty() && Double.parseDouble(moisturePercent) > 41.0) {
+                        organicMoistureCount++;
+                    }
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid moisture percentage: " + moisturePercent);
                 }
 
                 String milkType = cheeseData[milkTypeIndex];
@@ -104,8 +108,13 @@ public class CheeseAnalyzer {
             int milkTypeIndex = getColumnIndex(headers, "MilkTypeEn");
             while ((line = br.readLine()) != null) {
                 String[] cheeseData = line.split(",");
-                String milkType = cheeseData[milkTypeIndex];
-                milkTypeCount.put(milkType, milkTypeCount.getOrDefault(milkType, 0) + 1);
+                if (milkTypeIndex < cheeseData.length) {
+                    String milkType = cheeseData[milkTypeIndex].trim();
+                    // Only count valid milk types
+                    if (milkType.equalsIgnoreCase("Cow") || milkType.equalsIgnoreCase("Goat") || milkType.equalsIgnoreCase("Sheep")) {
+                        milkTypeCount.put(milkType, milkTypeCount.getOrDefault(milkType, 0) + 1);
+                    }
+                }
             }
         } catch (IOException e) {
             System.err.println("An error occurred while reading the cheese data: " + e.getMessage());
@@ -113,7 +122,7 @@ public class CheeseAnalyzer {
         return milkTypeCount;
     }
 
-    private int getCheeseCountByMilkTreatment(String milkTreatmentType) {
+    public int getCheeseCountByMilkTreatment(String milkTreatmentType) {
         int count = 0;
         try (BufferedReader br = new BufferedReader(new FileReader("cheese_data.csv"))) {
             String line;
@@ -141,15 +150,23 @@ public class CheeseAnalyzer {
             int moistureIndex = getColumnIndex(headers, moistureCol);
             while ((line = br.readLine()) != null) {
                 String[] cheeseData = line.split(",");
-                boolean isOrganic = cheeseData[organicIndex].equals("1");
-                double moisturePercent = Double.parseDouble(cheeseData[moistureIndex]);
-                if (isOrganic && moisturePercent > minMoisture) {
-                    count++;
+                try {
+                    boolean isOrganic = cheeseData[organicIndex].equals("1");
+                    double moisturePercent = Double.parseDouble(cheeseData[moistureIndex]);
+                    if (isOrganic && moisturePercent > minMoisture) {
+                        count++;
+                    }
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid moisture percentage: " + cheeseData[moistureIndex]);
                 }
             }
         } catch (IOException e) {
             System.err.println("An error occurred while processing the cheese data: " + e.getMessage());
         }
         return count;
+    }
+    
+    public int OrganicMoistureCount() {
+        return getCheeseCountByCondition("Organic", "MoisturePercent", 41.0);
     }
 }
